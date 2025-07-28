@@ -1,0 +1,22 @@
+{
+    "name": "ibb-tenis-bot",
+    "version": "1.0.0",
+    "description": "İBB Spor tenis rezervasyon botu",
+    "main": "src/bot.js",
+    "scripts": {
+        "start": "node src/bot.js",
+        "dev": "nodemon src/bot.js",
+        "test": "node src/bot.js --test"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "type": "commonjs",
+    "dependencies": {
+        "dotenv": "^17.2.1",
+        "node-cron": "^4.2.1",
+        "puppeteer": "^24.15.0",
+        "node-telegram-bot-api": "^0.64.0"
+    },
+    "devDependencies": {}
+}

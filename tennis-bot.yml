@@ -1,0 +1,35 @@
+name: Tenis Rezervasyon Bot
+
+on:
+  schedule:
+    # Her gün 17:54 UTC (20:54 Türkiye saati)
+    - cron: '54 17 * * *'
+  workflow_dispatch:  # Manuel tetikleme için
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Install Chromium
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser
+        
+      - name: Run bot
+        env:
+          TC_KIMLIK: ${{ secrets.TC_KIMLIK }}
+          SIFRE: ${{ secrets.SIFRE }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          HEADLESS: 'true'
+        run: node src/bot.js 
