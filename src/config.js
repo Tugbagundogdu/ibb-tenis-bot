@@ -51,9 +51,9 @@ const config = {
     // Selectors (HTML elementleri)
     selectors: {
         login: {
-            tcInput: '#txtTCPasaport',
-            passwordInput: '#txtSifre', 
-            loginButton: '#btnGirisYap'
+            tcInput: 'input[name="#txtTCPasaport"]',
+            passwordInput: 'input[name="#txtSifre"]', 
+            loginButton: 'input[name="#btnGirisYap"]',
         },
         // Bunları rezervasyon sayfasını görünce tamamlayacağız
         reservation: {
