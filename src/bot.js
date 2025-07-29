@@ -92,42 +92,43 @@ class IBBTenisBot {
     }
 
     // Giriş yap
-    async login() {
-        try {
-            console.log('🔐 Giriş yapılıyor...');
-            await this.page.goto(config.urls.login, { waitUntil: 'networkidle2' });
+// Login fonksiyonunu düzelt:
+async login() {
+    try {
+        console.log('🔐 Giriş yapılıyor...');
+        await this.page.goto(config.urls.login, { waitUntil: 'networkidle2' });
 
-            // TC Kimlik No gir
-            await this.page.waitForSelector(config.selectors.login.tcInput);
-            await this.page.type(config.selectors.login.tcInput, config.credentials.tcKimlik);
-            
-            // Şifre gir
-            await this.page.type(config.selectors.login.passwordInput, config.credentials.sifre);
-            
-            // Kısa bekle (insan gibi davran)
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Giriş yap butonuna tıkla
-            await this.page.click(config.selectors.login.loginButton);
-            
-            // Giriş sonrası sayfanın yüklenmesini bekle
-            await this.page.waitForNavigation({ waitUntil: 'networkidle2' });
-            
-            // Giriş kontrolü - eğer hala login sayfasındaysak hata var
-            const currentUrl = this.page.url();
-            if (currentUrl.includes('uyegiris')) {
-                throw new Error('Giriş bilgileri yanlış veya giriş başarısız');
-            }
-            
-            console.log('✅ Giriş başarılı!');
-            await this.sendNotification('✅ Giriş başarılı!');
-            return true;
-        } catch (error) {
-            console.error('❌ Giriş hatası:', error.message);
-            await this.sendNotification('❌ Giriş hatası: ' + error.message);
-            return false;
+        // ✅ DOĞRU: Direkt selector kullan
+        await this.page.waitForSelector(config.selectors.login.tcInput);
+        await this.page.type(config.selectors.login.tcInput, config.credentials.tcKimlik);
+        
+        // ✅ DOĞRU: Direkt selector kullan
+        await this.page.type(config.selectors.login.passwordInput, config.credentials.sifre);
+        
+        // Kısa bekle (insan gibi davran)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // ✅ DOĞRU: Direkt selector kullan
+        await this.page.click(config.selectors.login.loginButton);
+        
+        // Giriş sonrası sayfanın yüklenmesini bekle
+        await this.page.waitForNavigation({ waitUntil: 'networkidle2' });
+        
+        // Giriş kontrolü - eğer hala login sayfasındaysak hata var
+        const currentUrl = this.page.url();
+        if (currentUrl.includes('uyegiris')) {
+            throw new Error('Giriş bilgileri yanlış veya giriş başarısız');
         }
+        
+        console.log('✅ Giriş başarılı!');
+        await this.sendNotification('✅ Giriş başarılı!');
+        return true;
+    } catch (error) {
+        console.error('❌ Giriş hatası:', error.message);
+        await this.sendNotification('❌ Giriş hatası: ' + error.message);
+        return false;
     }
+}
 
     // Seanslar sayfasına git ve Veledrom seç
     async navigateToVeledrom() {

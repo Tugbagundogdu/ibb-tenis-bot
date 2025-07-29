@@ -22,9 +22,18 @@ const config = {
 
     // Browser ayarları
     browser: {
-        headless: process.env.HEADLESS === 'true',
+        headless: process.env.HEADLESS !== 'false', // Default true (GitHub'da headless çalışır)
         defaultViewport: null,
-        args: ['--start-maximized', '--no-sandbox']
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process', // GitHub Actions için önemli
+            '--disable-gpu'
+        ]
     },
 
     // Rezervasyon ayarları
@@ -51,9 +60,9 @@ const config = {
     // Selectors (HTML elementleri)
     selectors: {
         login: {
-            tcInput: 'input[name="#txtTCPasaport"]',
-            passwordInput: 'input[name="#txtSifre"]', 
-            loginButton: 'input[name="#btnGirisYap"]',
+            tcInput: '#txtTCPasaport',
+            passwordInput: '#txtSifre', 
+            loginButton: '#btnGirisYap'
         },
         // Bunları rezervasyon sayfasını görünce tamamlayacağız
         reservation: {
