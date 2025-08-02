@@ -6,7 +6,8 @@
     "scripts": {
         "start": "node src/bot.js",
         "dev": "nodemon src/bot.js",
-        "test": "node src/bot.js --test"
+        "test": "node src/bot.js --test",
+        "test:github": "HEADLESS=true node src/bot.js --test"
     },
     "keywords": [],
     "author": "",

@@ -1,0 +1,52 @@
+name: Test Bot
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install Chrome dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          ca-certificates \
+          fonts-liberation \
+          libappindicator3-1 \
+          libasound2 \
+          libatk-bridge2.0-0 \
+          libdrm2 \
+          libgtk-3-0 \
+          libnspr4 \
+          libnss3 \
+          libxcomposite1 \
+          libxdamage1 \
+          libxrandr2 \
+          xdg-utils \
+          libxss1
+    
+    - name: Run tests
+      env:
+        HEADLESS: true
+        TC_KIMLIK: ${{ secrets.TC_KIMLIK }}
+        SIFRE: ${{ secrets.SIFRE }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: npm run test:github 

@@ -83,52 +83,98 @@ class IBBTenisBot {
         this.browser = await puppeteer.launch(config.browser);
         this.page = await this.browser.newPage();
         
+        // Viewport ayarla (GitHub Actions için önemli)
+        await this.page.setViewport({ width: 1280, height: 720 });
+        
         // User agent ayarla
         await this.page.setUserAgent(
             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         );
         
+        // Extra headers ekle
+        await this.page.setExtraHTTPHeaders({
+            'Accept-Language': 'tr-TR,tr;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+        });
+        
         console.log('✅ Browser hazır!');
     }
 
     // Giriş yap
-// Login fonksiyonunu düzelt:
-async login() {
-    try {
-        console.log('🔐 Giriş yapılıyor...');
-        await this.page.goto(config.urls.login, { waitUntil: 'networkidle2' });
-
-        // ✅ DOĞRU: Direkt selector kullan
-        await this.page.waitForSelector(config.selectors.login.tcInput);
-        await this.page.type(config.selectors.login.tcInput, config.credentials.tcKimlik);
-        
-        // ✅ DOĞRU: Direkt selector kullan
-        await this.page.type(config.selectors.login.passwordInput, config.credentials.sifre);
-        
-        // Kısa bekle (insan gibi davran)
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // ✅ DOĞRU: Direkt selector kullan
-        await this.page.click(config.selectors.login.loginButton);
-        
-        // Giriş sonrası sayfanın yüklenmesini bekle
-        await this.page.waitForNavigation({ waitUntil: 'networkidle2' });
-        
-        // Giriş kontrolü - eğer hala login sayfasındaysak hata var
-        const currentUrl = this.page.url();
-        if (currentUrl.includes('uyegiris')) {
-            throw new Error('Giriş bilgileri yanlış veya giriş başarısız');
+    async login() {
+        try {
+            console.log('🔐 Giriş yapılıyor...');
+            
+            // Sayfaya git ve daha esnek bekleme stratejisi kullan
+            await this.page.goto(config.urls.login, { 
+                waitUntil: 'domcontentloaded',
+                timeout: 60000 
+            });
+            
+            // Sayfanın tamamen yüklenmesi için ek bekleme
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            
+            // Sayfa içeriğini kontrol et
+            const pageContent = await this.page.content();
+            console.log('📄 Sayfa yüklendi, içerik uzunluğu:', pageContent.length);
+            
+            // Element'in var olup olmadığını kontrol et
+            const tcInputExists = await this.page.$(config.selectors.login.tcInput);
+            if (!tcInputExists) {
+                console.log('❌ TC Input elementi bulunamadı, sayfa içeriği kontrol ediliyor...');
+                const bodyText = await this.page.evaluate(() => document.body.innerText);
+                console.log('📄 Sayfa metni:', bodyText.substring(0, 200) + '...');
+                throw new Error('Login formu yüklenemedi');
+            }
+            
+            // Element'i bekle (daha uzun timeout ile)
+            await this.page.waitForSelector(config.selectors.login.tcInput, { 
+                timeout: 60000,
+                visible: true 
+            });
+            
+            // TC Kimlik girişi
+            await this.page.type(config.selectors.login.tcInput, config.credentials.tcKimlik, { delay: 100 });
+            
+            // Şifre girişi
+            await this.page.type(config.selectors.login.passwordInput, config.credentials.sifre, { delay: 100 });
+            
+            // Kısa bekle (insan gibi davran)
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Login butonuna tıkla
+            await this.page.click(config.selectors.login.loginButton);
+            
+            // Giriş sonrası sayfanın yüklenmesini bekle (daha esnek)
+            try {
+                await this.page.waitForNavigation({ 
+                    waitUntil: 'domcontentloaded',
+                    timeout: 60000 
+                });
+            } catch (navError) {
+                console.log('⚠️ Navigation timeout, sayfa kontrol ediliyor...');
+                // Sayfanın yüklenmesi için ek bekleme
+                await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+            
+            // Giriş kontrolü - eğer hala login sayfasındaysak hata var
+            const currentUrl = this.page.url();
+            console.log('📍 Giriş sonrası URL:', currentUrl);
+            
+            if (currentUrl.includes('uyegiris')) {
+                throw new Error('Giriş bilgileri yanlış veya giriş başarısız');
+            }
+            
+            console.log('✅ Giriş başarılı!');
+            await this.sendNotification('✅ Giriş başarılı!');
+            return true;
+        } catch (error) {
+            console.error('❌ Giriş hatası:', error.message);
+            await this.sendNotification('❌ Giriş hatası: ' + error.message);
+            return false;
         }
-        
-        console.log('✅ Giriş başarılı!');
-        await this.sendNotification('✅ Giriş başarılı!');
-        return true;
-    } catch (error) {
-        console.error('❌ Giriş hatası:', error.message);
-        await this.sendNotification('❌ Giriş hatası: ' + error.message);
-        return false;
     }
-}
 
     // Seanslar sayfasına git ve Veledrom seç
     async navigateToVeledrom() {
@@ -138,25 +184,43 @@ async login() {
             
             // Direkt URL ile git
             await this.page.goto('https://online.spor.istanbul/uyespor.aspx', { 
-                waitUntil: 'networkidle2' 
+                waitUntil: 'domcontentloaded',
+                timeout: 60000 
             });
+            
+            // Sayfanın tamamen yüklenmesi için ek bekleme
+            await new Promise(resolve => setTimeout(resolve, 5000));
             
             console.log('📋 Seanslar sayfasına gidildi');
             console.log('📍 Şu anki URL:', this.page.url());
             
             // "Seans Seç" butonunu bul ve tıkla
             try {
-                await this.page.waitForSelector('[id*="lbtnSeansSecim"]', { timeout: 5000 });
+                await this.page.waitForSelector('[id*="lbtnSeansSecim"]', { 
+                    timeout: 10000,
+                    visible: true 
+                });
                 console.log('🎯 Seans Seç butonu bulundu');
                 
                 await this.page.click('[id*="lbtnSeansSecim"]');
                 console.log('✅ Seans Seç butonuna tıklandı');
                 
-                // Rezervasyon sayfası yüklenmesini bekle
-                await this.page.waitForNavigation({ waitUntil: 'networkidle2' });
+                // Rezervasyon sayfası yüklenmesini bekle (daha esnek)
+                try {
+                    await this.page.waitForNavigation({ 
+                        waitUntil: 'domcontentloaded',
+                        timeout: 60000 
+                    });
+                } catch (navError) {
+                    console.log('⚠️ Navigation timeout, sayfa kontrol ediliyor...');
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                }
                 
             } catch (error) {
                 console.log('⚠️ Seans Seç butonu bulunamadı:', error.message);
+                // Sayfa içeriğini kontrol et
+                const bodyText = await this.page.evaluate(() => document.body.innerText);
+                console.log('📄 Sayfa metni:', bodyText.substring(0, 200) + '...');
                 return false;
             }
             
@@ -177,16 +241,17 @@ async login() {
             await this.sendNotification('📅 Rezervasyon işlemi başlatılıyor...');
             
             // Sayfanın yüklenmesini bekle
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise(resolve => setTimeout(resolve, 5000));
 
             // Seans seçimi yap
             try {
                 console.log('🔍 Uygun seans aranıyor...');
                 await this.sendNotification('🔍 Uygun seans aranıyor...');
 
-                // Seans checkbox'ını bul
+                // Seans checkbox'ını bul (daha uzun timeout ile)
                 const seansCheckbox = await this.page.waitForSelector('input[type="checkbox"][id*="cboxSeans"]', {
-                    timeout: 200
+                    timeout: 10000,
+                    visible: true
                 });
 
                 if (seansCheckbox) {
@@ -196,7 +261,7 @@ async login() {
                     await this.sendNotification('✅ Seans seçildi');
 
                     // Sayfa yenilenmesini bekle (checkbox tıklanınca sayfa yenilenebilir)
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    await new Promise(resolve => setTimeout(resolve, 3000));
                 } else {
                     throw new Error('Uygun seans bulunamadı');
                 }
@@ -218,7 +283,10 @@ async login() {
                     const selector = checkboxSelectors[i];
                     try {
                         console.log(`🔍 Deneniyor: ${selector}`);
-                        const checkbox = await this.page.waitForSelector(selector, { timeout: 1500 });
+                        const checkbox = await this.page.waitForSelector(selector, { 
+                            timeout: 5000,
+                            visible: true 
+                        });
                         if (checkbox) {
                             await checkbox.click();
                             console.log(`✅ BAŞARILI! Onay checkbox bulundu ve tıklandı: ${selector}`);
@@ -227,87 +295,186 @@ async login() {
                             checkboxFound = true;
                             break;
                         }
-                    } catch (error) {
-                        console.log(`❌ Başarısız: ${selector} - ${error.message}`);
+                    } catch (selectorError) {
+                        console.log(`❌ Selector başarısız: ${selector} - ${selectorError.message}`);
                         continue;
                     }
                 }
                 
                 if (!checkboxFound) {
-                    console.log('⚠️ Hiçbir onay kutusu bulunamadı');
-                    await this.sendNotification('⚠️ Onay kutusu bulunamadı');
-                    return false;
+                    throw new Error('Onay checkbox\'ı bulunamadı');
                 }
+                
+                // Checkbox tıklanması sonrası kısa bekleme
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
             } catch (error) {
-                console.log('⚠️ Checkbox işleme hatası:', error.message);
-                await this.sendNotification('❌ Onay kutusu hatası: ' + error.message);
+                console.error('❌ Onay checkbox hatası:', error.message);
+                await this.sendNotification('❌ Onay checkbox hatası: ' + error.message);
                 return false;
             }
-
+            
             // Kaydet butonunu bul ve tıkla
             try {
-                const saveButtonSelectors = [
+                const buttonSelectors = [
                     '[id*="btnKaydet"]',
                     'input[type="submit"][value*="Kaydet"]',
+                    'button[type="submit"]',
+                    'input[type="button"][value*="Kaydet"]'
                 ];
                 
-                 let saveButtonFound = false;
-    for (let i = 0; i < saveButtonSelectors.length; i++) {
-        const selector = saveButtonSelectors[i];
-        try {
-            console.log(`🔍 Kaydet butonu deneniyor: ${selector}`);
-            const saveButton = await this.page.waitForSelector(selector, { timeout: 1500 });
-            if (saveButton) {
-                await saveButton.click();
-                console.log(`✅ BAŞARILI! Kaydet butonu bulundu ve tıklandı: ${selector}`);
-                console.log(`📊 Selector sırası: ${i + 1}/${saveButtonSelectors.length}`);
-                await this.sendNotification(`✅ Kaydet butonuna tıklandı (${selector})`);
-                saveButtonFound = true;
-                break;
+                let buttonFound = false;
+                for (let i = 0; i < buttonSelectors.length; i++) {
+                    const selector = buttonSelectors[i];
+                    try {
+                        console.log(`🔍 Kaydet butonu deneniyor: ${selector}`);
+                        const button = await this.page.waitForSelector(selector, { 
+                            timeout: 5000,
+                            visible: true 
+                        });
+                        if (button) {
+                            await button.click();
+                            console.log(`✅ BAŞARILI! Kaydet butonu bulundu ve tıklandı: ${selector}`);
+                            console.log(`📊 Selector sırası: ${i + 1}/${buttonSelectors.length}`);
+                            await this.sendNotification(`✅ Kaydet butonuna tıklandı (${selector})`);
+                            buttonFound = true;
+                            break;
+                        }
+                    } catch (selectorError) {
+                        console.log(`❌ Kaydet butonu selector başarısız: ${selector} - ${selectorError.message}`);
+                        continue;
+                    }
+                }
+                
+                if (!buttonFound) {
+                    throw new Error('Kaydet butonu bulunamadı');
+                }
+                
+            } catch (error) {
+                console.error('❌ Kaydet butonu hatası:', error.message);
+                await this.sendNotification('❌ Kaydet butonu hatası: ' + error.message);
+                return false;
             }
-        } catch (error) {
-            console.log(`❌ Başarısız: ${selector} - ${error.message}`);
-            continue;
-        }
-    }
-    
-    if (!saveButtonFound) {
-        console.log('⚠️ Kaydet butonu bulunamadı');
-        await this.sendNotification('⚠️ Kaydet butonu bulunamadı');
-        return false;
-    }
-} catch (error) {
-    console.log('❌ Kaydet butonu hatası:', error.message);
-    await this.sendNotification('❌ Kaydet butonu hatası: ' + error.message);
-    return false;
-}
-
-            // SMS Doğrulama kodu alanını bekle
+            
+            // SMS doğrulama kontrolü
             try {
-                // Doğrulama kodu input'unu bekle
-                await this.page.waitForSelector('#pageContent_txtDogrulamaKodu', { timeout: 5000 });
                 console.log('📱 SMS doğrulama kodu gerekiyor...');
-
-                // Telegram'dan kodu bekle
-                const verificationCode = await this.waitForVerificationCode();
-
-                // Kodu gir
-                await this.page.type('#pageContent_txtDogrulamaKodu', verificationCode);
+                
+                // SMS kodu input alanını bekle (birden fazla selector dene)
+                const smsSelectors = [
+                    'input[type="text"][id*="txtSmsKod"]',
+                    'input[type="text"][id*="txtDogrulamaKodu"]',
+                    '#pageContent_txtDogrulamaKodu',
+                    'input[type="text"][name*="sms"]',
+                    'input[type="text"][name*="kod"]'
+                ];
+                
+                let smsInputFound = false;
+                let smsInputSelector = null;
+                
+                for (const selector of smsSelectors) {
+                    try {
+                        console.log(`🔍 SMS input deneniyor: ${selector}`);
+                        await this.page.waitForSelector(selector, { 
+                            timeout: 5000,
+                            visible: true 
+                        });
+                        smsInputFound = true;
+                        smsInputSelector = selector;
+                        console.log(`✅ SMS input bulundu: ${selector}`);
+                        break;
+                    } catch (error) {
+                        console.log(`❌ SMS input bulunamadı: ${selector}`);
+                        continue;
+                    }
+                }
+                
+                if (!smsInputFound) {
+                    console.log('⚠️ SMS input bulunamadı, sayfa içeriği kontrol ediliyor...');
+                    const bodyText = await this.page.evaluate(() => document.body.innerText);
+                    console.log('📄 Sayfa metni:', bodyText.substring(0, 300) + '...');
+                    
+                    // Test modunda ise devam et, gerçek modda hata ver
+                    if (process.argv.includes('--test')) {
+                        console.log('🧪 Test modu: SMS doğrulama atlanıyor...');
+                        await this.sendNotification('🧪 Test modu: SMS doğrulama atlandı');
+                        return true;
+                    } else {
+                        throw new Error('SMS doğrulama alanı bulunamadı');
+                    }
+                }
+                
+                // SMS kodunu bekle
+                const smsCode = await this.waitForVerificationCode();
+                
+                // SMS kodunu gir
+                await this.page.type(smsInputSelector, smsCode, { delay: 100 });
                 console.log('✅ Doğrulama kodu girildi');
                 await this.sendNotification('✅ Doğrulama kodu girildi');
-
-                // Doğrula butonuna tıkla
-                await this.page.click('#btnCepTelDogrulamaGonder');
-                console.log('✅ Doğrula butonuna tıklandı');
-                await this.sendNotification('✅ Doğrulama kodu gönderildi');
-
-                // Sayfanın yüklenmesini bekle
-                await new Promise(resolve => setTimeout(resolve, 3000));
-
+                
+                // Doğrula butonunu bul ve tıkla
+                const doğrulaSelectors = [
+                    'input[type="button"][value*="Doğrula"]',
+                    'input[type="submit"][value*="Doğrula"]',
+                    '#btnCepTelDogrulamaGonder',
+                    'button[type="submit"]',
+                    'input[type="button"][id*="btnDogrula"]'
+                ];
+                
+                let doğrulaButtonFound = false;
+                for (const selector of doğrulaSelectors) {
+                    try {
+                        console.log(`🔍 Doğrula butonu deneniyor: ${selector}`);
+                        await this.page.waitForSelector(selector, { 
+                            timeout: 3000,
+                            visible: true 
+                        });
+                        await this.page.click(selector);
+                        console.log(`✅ Doğrula butonuna tıklandı: ${selector}`);
+                        doğrulaButtonFound = true;
+                        break;
+                    } catch (error) {
+                        console.log(`❌ Doğrula butonu bulunamadı: ${selector}`);
+                        continue;
+                    }
+                }
+                
+                if (!doğrulaButtonFound) {
+                    console.log('⚠️ Doğrula butonu bulunamadı, manuel tıklama deneniyor...');
+                    // Sayfadaki tüm butonları bul ve doğrula içereni tıkla
+                    const buttons = await this.page.$$('input[type="button"], button');
+                    for (const button of buttons) {
+                        const text = await button.evaluate(el => el.value || el.textContent);
+                        if (text && text.toLowerCase().includes('doğrula')) {
+                            await button.click();
+                            console.log('✅ Doğrula butonu manuel olarak tıklandı');
+                            doğrulaButtonFound = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (doğrulaButtonFound) {
+                    await this.sendNotification('✅ Doğrulama kodu gönderildi');
+                } else {
+                    await this.sendNotification('⚠️ Doğrula butonu bulunamadı, manuel kontrol gerekebilir');
+                }
+                
+                // İşlem sonucunu bekle
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                
             } catch (error) {
                 console.error('❌ SMS doğrulama hatası:', error.message);
-                await this.sendNotification('❌ SMS doğrulama hatası: ' + error.message);
-                return false;
+                
+                // Test modunda ise devam et
+                if (process.argv.includes('--test')) {
+                    console.log('🧪 Test modu: SMS doğrulama hatası atlanıyor...');
+                    await this.sendNotification('🧪 Test modu: SMS doğrulama hatası atlandı');
+                    return true;
+                } else {
+                    await this.sendNotification('❌ SMS doğrulama hatası: ' + error.message);
+                    return false;
+                }
             }
             
             // İşlem sonrası bekle

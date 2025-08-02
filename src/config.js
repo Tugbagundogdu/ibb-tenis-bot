@@ -23,7 +23,7 @@ const config = {
     // Browser ayarları
     browser: {
         headless: process.env.HEADLESS !== 'false', // Default true (GitHub'da headless çalışır)
-        defaultViewport: null,
+        defaultViewport: { width: 1280, height: 720 },
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -32,8 +32,42 @@ const config = {
             '--no-first-run',
             '--no-zygote',
             '--single-process', // GitHub Actions için önemli
-            '--disable-gpu'
-        ]
+            '--disable-gpu',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+            '--disable-field-trial-config',
+            '--disable-ipc-flooding-protection',
+            '--disable-hang-monitor',
+            '--disable-prompt-on-repost',
+            '--disable-client-side-phishing-detection',
+            '--disable-component-extensions-with-background-pages',
+            '--disable-default-apps',
+            '--disable-extensions',
+            '--disable-sync',
+            '--disable-translate',
+            '--hide-scrollbars',
+            '--mute-audio',
+            '--no-default-browser-check',
+            '--safebrowsing-disable-auto-update',
+            '--disable-background-networking',
+            '--disable-default-apps',
+            '--disable-extensions',
+            '--disable-sync',
+            '--disable-translate',
+            '--hide-scrollbars',
+            '--mute-audio',
+            '--no-first-run',
+            '--safebrowsing-disable-auto-update',
+            '--ignore-certificate-errors',
+            '--ignore-ssl-errors',
+            '--ignore-certificate-errors-spki-list',
+            '--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        ],
+        ignoreHTTPSErrors: true,
+        timeout: 60000
     },
 
     // Rezervasyon ayarları
