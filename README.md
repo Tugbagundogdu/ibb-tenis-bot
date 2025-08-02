@@ -2,46 +2,50 @@
 
 Bu bot, İstanbul Büyükşehir Belediyesi (İBB) spor tesislerinde otomatik tenis rezervasyonu yapmak için geliştirilmiştir.
 
-## Özellikler
+## 🚀 Özellikler
 
 - 🤖 **Otomatik Rezervasyon**: Puppeteer ile web sitesinde otomatik işlem
 - 📱 **Telegram Entegrasyonu**: Bot durumu ve bildirimler Telegram üzerinden
 - 🔐 **SMS Doğrulama**: Güvenlik için SMS kodunu Telegram üzerinden alma
 - ⏰ **Zamanlanmış Çalışma**: Cron ile otomatik çalışma
 - 🧪 **Test Modu**: Hemen test edebilme
+- 🕐 **Scheduler**: Sunucuda otomatik çalışma
 
-## Kurulum
-
-### Gereksinimler
+## 📋 Gereksinimler
 
 - Node.js 18+
 - npm veya yarn
 - Chrome/Chromium browser
 
-### Adımlar
+## 🛠️ Kurulum
 
-1. **Projeyi klonlayın:**
+### 1. Projeyi İndirin
 ```bash
 git clone <repository-url>
 cd ibb-tenis-bot
 ```
 
-2. **Bağımlılıkları yükleyin:**
+### 2. Bağımlılıkları Yükleyin
 ```bash
 npm install
 ```
 
-3. **Environment değişkenlerini ayarlayın:**
+### 3. Environment Değişkenlerini Ayarlayın
 `.env` dosyası oluşturun:
 ```env
+# İBB Spor Bilgileri
 TC_KIMLIK=your_tc_kimlik
 SIFRE=your_password
+
+# Telegram Bot Bilgileri
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 TELEGRAM_CHAT_ID=your_telegram_chat_id
+
+# Browser Ayarları
 HEADLESS=true
 ```
 
-## Kullanım
+## 🎯 Kullanım
 
 ### Lokal Çalıştırma
 
@@ -54,24 +58,39 @@ npm run dev
 
 # Test modu (hemen çalışır)
 npm test
+
+# Scheduler (zamanlanmış çalışma)
+npm run scheduler
+
+# Test modunda scheduler (her 5 dakikada)
+npm run scheduler:test
+
+# Production modunda scheduler (her gün 20:59'da)
+npm run scheduler:prod
 ```
 
-### GitHub Actions
+### Sunucuda Çalıştırma
 
-GitHub Actions'da çalıştırmak için:
+```bash
+# Sunucuda projeyi klonlayın
+git clone <repository-url>
+cd ibb-tenis-bot
 
-1. **Repository Secrets** ayarlayın:
-   - `TC_KIMLIK`: TC Kimlik numaranız
-   - `SIFRE`: Şifreniz
-   - `TELEGRAM_BOT_TOKEN`: Telegram bot token'ınız
-   - `TELEGRAM_CHAT_ID`: Telegram chat ID'niz
+# Bağımlılıkları yükleyin
+npm install
 
-2. **Workflow tetikleyin:**
-   - Push yapın veya
-   - Pull Request oluşturun veya
-   - Manuel olarak "Actions" sekmesinden tetikleyin
+# .env dosyasını oluşturun ve düzenleyin
+cp .env.example .env
+nano .env
 
-## Telegram Komutları
+# Production modunda scheduler başlatın
+npm run scheduler:prod
+
+# Arka planda çalıştırmak için
+nohup npm run scheduler:prod > bot.log 2>&1 &
+```
+
+## 📱 Telegram Komutları
 
 Bot çalışırken şu komutları kullanabilirsiniz:
 
@@ -79,33 +98,24 @@ Bot çalışırken şu komutları kullanabilirsiniz:
 - `/ping` - Ping/Pong testi
 - `/rezervasyon` - Rezervasyon işlemini başlat
 
-## GitHub Actions Sorun Giderme
+## ⏰ Zamanlama
 
-### Yaygın Hatalar
+### Scheduler Ayarları
 
-1. **"waiting for selector failed" hatası:**
-   - Browser ayarları optimize edildi
-   - Timeout süreleri artırıldı
-   - Daha esnek navigation stratejisi kullanıldı
+- **Test Modu**: Her 5 dakikada bir çalışır
+- **Production Modu**: Her gün saat 20:59'da çalışır (rezervasyon açılış saatinden 1 dakika önce)
 
-2. **Navigation timeout hatası:**
-   - `networkidle0` yerine `domcontentloaded` kullanıldı
-   - Ek bekleme süreleri eklendi
-   - Hata yakalama mekanizmaları geliştirildi
+### Manuel Tetikleme
 
-3. **Element bulunamama:**
-   - Multiple selector stratejisi
-   - Sayfa içeriği kontrolü
-   - Detaylı hata logları
+```bash
+# Hemen çalıştır
+npm test
 
-### Debug İpuçları
+# Scheduler'ı manuel tetikle
+kill -SIGUSR1 <process_id>
+```
 
-- GitHub Actions loglarını kontrol edin
-- Sayfa içeriği uzunluğunu takip edin
-- URL değişikliklerini izleyin
-- Element bulma süreçlerini takip edin
-
-## Yapılandırma
+## 🔧 Yapılandırma
 
 ### Browser Ayarları
 
@@ -134,7 +144,45 @@ reservation: {
 }
 ```
 
-## Katkıda Bulunma
+## 🐛 Sorun Giderme
+
+### Yaygın Sorunlar
+
+1. **Chrome/Chromium kurulumu:**
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install -y chromium-browser
+
+# CentOS/RHEL
+sudo yum install -y chromium
+```
+
+2. **Process yönetimi:**
+```bash
+# Çalışan process'leri görüntüle
+ps aux | grep node
+
+# Process'i durdur
+kill <process_id>
+
+# Arka planda çalıştır
+nohup npm run scheduler:prod > bot.log 2>&1 &
+```
+
+3. **SMS Doğrulama Sorunları:**
+- Bot test modunda SMS doğrulamayı atlar
+- Gerçek modda Telegram üzerinden SMS kodunu bekler
+- 5 dakika timeout süresi vardır
+
+## 📝 Log Dosyaları
+
+Bot çalışırken detaylı loglar oluşturur:
+- Console çıktısı
+- Telegram bildirimleri
+- Hata mesajları
+
+## 🤝 Katkıda Bulunma
 
 1. Fork yapın
 2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
@@ -142,10 +190,10 @@ reservation: {
 4. Push yapın (`git push origin feature/amazing-feature`)
 5. Pull Request oluşturun
 
-## Lisans
+## 📄 Lisans
 
 Bu proje ISC lisansı altında lisanslanmıştır.
 
-## Destek
+## 📞 Destek
 
 Sorunlarınız için GitHub Issues kullanın veya Telegram üzerinden iletişime geçin. 

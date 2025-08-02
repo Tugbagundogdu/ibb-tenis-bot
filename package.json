@@ -7,10 +7,12 @@
         "start": "node src/bot.js",
         "dev": "nodemon src/bot.js",
         "test": "node src/bot.js --test",
-        "test:github": "HEADLESS=true node src/bot.js --test"
+        "scheduler": "node scripts/scheduler.js",
+        "scheduler:test": "NODE_ENV=development node scripts/scheduler.js --run-now",
+        "scheduler:prod": "NODE_ENV=production node scripts/scheduler.js"
     },
-    "keywords": [],
-    "author": "",
+    "keywords": ["tenis", "rezervasyon", "ibb", "bot", "puppeteer"],
+    "author": "Tugbagundogdu",
     "license": "ISC",
     "type": "commonjs",
     "dependencies": {
